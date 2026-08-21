@@ -723,10 +723,19 @@ document.querySelectorAll("[data-roll]").forEach(b=>b.onclick=()=>{
 
 /* ---- Save / load / print ---- */
 $("#btnPrint").onclick = ()=>window.print();
-$("#btnExport").onclick = ()=>{
+$("#btnExport").onclick = async ()=>{
   const name = (S.mystery.trim()||"mystery-matrix").replace(/[^\w -]/g,"").slice(0,50);
+  const json = JSON.stringify(S,null,2);
+  /* Hosted copies hand the file over through the viewer; a local file just downloads it. */
+  let dl = null;
+  try{ if(window.claude && window.claude.use) dl = await window.claude.use("downloads"); }catch(e){}
+  if(dl){
+    try{ await dl.save({filename:name+".json", data:json}); logIt("Exported "+esc(name)+".json"); }
+    catch(err){ if(err && err.code!=="declined") alert("The case file could not be saved: "+(err.message||err.code)); }
+    return;
+  }
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));
+  a.href = URL.createObjectURL(new Blob([json],{type:"application/json"}));
   a.download = name+".json"; a.click(); URL.revokeObjectURL(a.href);
 };
 $("#btnImport").onclick = ()=>$("#fileIn").click();
