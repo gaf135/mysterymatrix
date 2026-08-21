@@ -4,118 +4,147 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Mystery Matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=IBM+Plex+Mono:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
 :root{
-  --bg:#f4f1ea; --panel:#fffdf8; --ink:#1e1b16; --muted:#6f6558; --line:#cfc6b5;
-  --accent:#8c2f1f; --accent2:#1f4e5f; --clue:#fdfaf2; --susp:#f1ece0;
-  --good:#2f6b3a; --warn:#a35c11; --shadow:0 1px 2px rgba(0,0,0,.08);
+  --bg:#e9ecef; --panel:#f7f8fa; --sheet:#fdfdfe; --field:#f2f4f7; --susp-field:#e8edf3;
+  --ink:#15181c; --muted:#5e6874; --line:#c3cad2; --hair:#d9dee4;
+  --blue:#1c3c5e; --red:#b0261d; --green:#2c6a4d; --amber:#9a6212;
+  --accent:var(--red); --accent2:var(--blue);
+  --shadow:0 1px 0 rgba(21,24,28,.06), 0 1px 3px rgba(21,24,28,.07);
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --cond:"Archivo Narrow","Arial Narrow",system-ui,sans-serif;
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#17161a; --panel:#201f24; --ink:#eae6de; --muted:#9a9287; --line:#3c3a42;--clue:#26242b;--susp:#2c2a33;--accent:#e0755f;--accent2:#79b8cc;--good:#7bbd8a;--warn:#d9a04b;}
+  :root:not([data-theme="light"]){
+    --bg:#14171b; --panel:#1c2026; --sheet:#20252c; --field:#252b33; --susp-field:#2a323c;
+    --ink:#dfe3e8; --muted:#8f9aa7; --line:#39414b; --hair:#2f363f;
+    --blue:#7fa8d4; --red:#e2645a; --green:#6fb891; --amber:#d3a154;
+    --shadow:0 1px 3px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#14171b; --panel:#1c2026; --sheet:#20252c; --field:#252b33; --susp-field:#2a323c;
+  --ink:#dfe3e8; --muted:#8f9aa7; --line:#39414b; --hair:#2f363f;
+  --blue:#7fa8d4; --red:#e2645a; --green:#6fb891; --amber:#d3a154;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
 }
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);
-  font:15px/1.45 "Iowan Old Style","Palatino Linotype",Georgia,serif;}
-h1,h2,h3{font-family:"Trebuchet MS",Avenir,Helvetica,sans-serif;margin:0 0 .4em}
-h1{font-size:22px;letter-spacing:.06em;text-transform:uppercase}
-h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-h3{font-size:13px;letter-spacing:.06em;text-transform:uppercase}
-button{font:inherit;font-family:"Trebuchet MS",Avenir,sans-serif;font-size:13px;
-  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;
-  padding:5px 9px;cursor:pointer;box-shadow:var(--shadow)}
-button:hover{border-color:var(--accent);color:var(--accent)}
-button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
-button.primary:hover{color:#fff;filter:brightness(1.1)}
-button.mini{padding:1px 6px;font-size:12px;box-shadow:none}
-input,select,textarea{font:inherit;background:transparent;color:var(--ink);
-  border:1px solid var(--line);border-radius:3px;padding:4px 6px}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);
+  font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+h1,h2,h3{margin:0;font-family:var(--cond);font-weight:700;text-transform:uppercase;letter-spacing:.09em}
+h1{font-size:27px;letter-spacing:.14em}
+h2{font-size:13px;letter-spacing:.13em;color:var(--muted);margin-bottom:9px}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button{font:600 12px/1.5 var(--cond);letter-spacing:.07em;text-transform:uppercase;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:2px;
+  padding:6px 10px;cursor:pointer}
+button:hover{border-color:var(--blue);color:var(--blue)}
+button.primary{background:var(--blue);color:var(--panel);border-color:var(--blue)}
+button.primary:hover{background:var(--ink);border-color:var(--ink);color:var(--panel)}
+button.mini{padding:1px 6px;font-size:11px;font-family:var(--mono);letter-spacing:0;text-transform:none}
+input,select,textarea{font:inherit;font-size:14px;background:var(--panel);color:var(--ink);
+  border:1px solid var(--line);border-radius:2px;padding:4px 6px}
 textarea{resize:none}
-.wrap{max-width:1380px;margin:0 auto;padding:16px}
-header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;
-  border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:14px}
+.wrap{max-width:1400px;margin:0 auto;padding:20px 18px 40px}
+header.top{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;
+  border-bottom:3px double var(--ink);padding-bottom:12px;margin-bottom:18px}
 header.top .grow{flex:1 1 320px}
 .toolbar{display:flex;gap:6px;flex-wrap:wrap}
-.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
-@media (max-width:1050px){.layout{grid-template-columns:1fr}}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;
-  padding:12px;margin-bottom:14px;box-shadow:var(--shadow)}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 348px;gap:20px;align-items:start}
+@media (max-width:1060px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:2px;
+  padding:14px;margin-bottom:16px;box-shadow:var(--shadow)}
 
-/* ---- Matrix ---- */
-#matrixWrap{position:relative;background:var(--panel);border:1px solid var(--line);
-  border-radius:6px;padding:10px;box-shadow:var(--shadow)}
-#mysteryBar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-#mysteryBar label{font:600 12px/1 "Trebuchet MS",sans-serif;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--accent)}
-#mysteryBar input{flex:1;font-size:16px;border:none;border-bottom:2px solid var(--line);border-radius:0}
-#grid{display:grid;grid-template-columns:repeat(20,1fr);gap:6px;position:relative;z-index:2}
+/* ---- The sheet ---- */
+#matrixWrap{position:relative;background:var(--sheet);border:1px solid var(--line);
+  border-radius:2px;padding:14px;box-shadow:var(--shadow)}
+#mysteryBar{display:flex;gap:10px;align-items:baseline;margin-bottom:12px}
+#mysteryBar label{font:700 12px/1 var(--cond);letter-spacing:.18em;text-transform:uppercase;color:var(--red)}
+#mysteryBar input{flex:1;font-size:17px;background:transparent;border:none;
+  border-bottom:1px solid var(--line);border-radius:0;padding:2px 2px 5px}
+#grid{display:grid;grid-template-columns:repeat(20,1fr);gap:7px;position:relative;z-index:2}
 #links{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:visible}
-.box{background:var(--clue);border:1px solid var(--line);border-radius:4px;
-  min-height:92px;padding:3px 4px;display:flex;flex-direction:column;position:relative}
-.box.suspect{background:var(--susp);border-color:var(--muted)}
-.box.empty textarea::placeholder{color:var(--muted);font-style:italic;font-size:11px}
-.box .hd{display:flex;align-items:center;gap:3px;font:600 10px/1.4 "Trebuchet MS",sans-serif;
-  color:var(--muted);letter-spacing:.04em}
-.box .num{color:var(--accent);font-size:11px}
-.box.suspect .num{color:var(--accent2)}
+.box{background:var(--field);border:1px solid var(--hair);border-radius:2px;
+  min-height:96px;padding:4px 5px;display:flex;flex-direction:column;position:relative}
+.box.suspect{background:var(--susp-field);border-color:var(--line)}
+.box .hd{display:flex;align-items:center;gap:4px;min-height:17px}
+.box .num{font:700 11px/1.4 var(--mono);color:var(--red);letter-spacing:-.02em}
+.box.suspect .num{color:var(--blue)}
 .box .sp{flex:1}
-.box textarea{flex:1;width:100%;border:none;padding:2px;font-size:12.5px;line-height:1.25;
+.box textarea{flex:1;width:100%;border:none;padding:2px 1px;font-size:13px;line-height:1.3;
   background:transparent;outline:none;overflow:hidden}
-.box .btns{display:flex;gap:2px;opacity:.35}
-.box:hover .btns,.box:focus-within .btns{opacity:1}
-.box .btns button{padding:0 3px;font-size:11px;line-height:1.4;box-shadow:none;background:transparent}
-.badge{display:inline-block;min-width:17px;text-align:center;border-radius:9px;padding:0 5px;
-  font:700 11px/1.5 "Trebuchet MS",sans-serif;background:var(--accent2);color:#fff}
-.badge.pts{background:var(--accent)}
-.badge.int{background:var(--warn)}
-.box.linksrc{outline:2px solid var(--accent);outline-offset:1px}
-.box.target{outline:2px dashed var(--accent2);outline-offset:1px;cursor:pointer}
-.box.clincher{border:2px solid var(--good);background:#eef6ee}
-.box.hi{animation:flash 1.4s ease-out}
-@keyframes flash{from{background:#ffe9a8}to{}}
+.box textarea::placeholder{color:var(--muted);opacity:.62;font:500 10.5px/1.3 var(--cond);
+  letter-spacing:.08em;text-transform:uppercase}
+.box .btns{display:flex;gap:1px;opacity:0}
+.box:hover .btns,.box:focus-within .btns,.box .btns:focus-within{opacity:1}
+.box .btns button{padding:0 3px;font-size:11px;line-height:1.3;border-color:transparent;background:transparent}
+.badge{display:inline-block;min-width:18px;text-align:center;border-radius:2px;padding:0 4px;
+  font:700 11px/1.6 var(--mono);background:var(--blue);color:var(--panel)}
+.badge.pts{background:var(--red)}
+.badge.int{background:var(--amber)}
+.box.linksrc{outline:2px solid var(--red);outline-offset:1px}
+.box.target{outline:1px dashed var(--blue);outline-offset:1px;cursor:pointer}
+.box.clincher{border:2px solid var(--green)}
+.box.clincher .num{color:var(--green)}
+.box.hi{animation:flash 1.3s ease-out}
+@keyframes flash{from{background:var(--susp-field);box-shadow:inset 0 0 0 2px var(--amber)}to{}}
+@media (prefers-reduced-motion:reduce){.box.hi{animation:none}}
 .rowtop .box,.rowbot .box{grid-column:span 4}
 .rowmid .box.clue{grid-column:span 4}
 .rowmid .box.suspect{grid-column:span 6}
-#footerRow{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;margin-top:8px;
-  align-items:center;text-align:center;font:600 11px/1 "Trebuchet MS",sans-serif;
-  letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
-.pp{display:flex;gap:6px;align-items:center;justify-content:center}
-.pp input{width:52px;text-align:center;font-size:16px;font-weight:700}
-.hint{font-size:12px;color:var(--muted);margin:4px 0 0}
-kbd{font:600 11px/1 "Trebuchet MS",sans-serif;border:1px solid var(--line);
-  border-radius:3px;padding:2px 4px;background:var(--bg)}
+#footerRow{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;margin-top:12px;
+  padding-top:10px;border-top:1px solid var(--hair);align-items:center;text-align:center;
+  font:700 11px/1 var(--cond);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.pp{display:flex;gap:6px;align-items:center;justify-content:center;margin-top:6px}
+.pp input{width:56px;text-align:center;font:700 17px/1.2 var(--mono)}
+.hint{font-size:12.5px;line-height:1.5;color:var(--muted);margin:8px 0 0}
+kbd{font:600 11px/1 var(--mono);border:1px solid var(--line);border-radius:2px;
+  padding:2px 4px;background:var(--panel);color:var(--ink)}
+#solved{background:var(--green);color:var(--panel);border-radius:2px;padding:9px 11px;
+  margin-bottom:12px;font-size:13.5px;display:none}
+#solved.on{display:block}
 
-/* ---- Side panels ---- */
+/* ---- Console ---- */
+.grp{margin-bottom:10px}
+.lbl{display:block;font:600 10.5px/1.6 var(--cond);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:4px}
 .dice{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .dice button{width:100%}
-#result{border-left:3px solid var(--accent);padding-left:10px;margin-top:10px;font-size:14px}
-#result .roll{font:700 12px/1.4 "Trebuchet MS",sans-serif;color:var(--muted);letter-spacing:.05em}
-#result .title{font-weight:700;color:var(--accent);font-size:15px}
-#result .act{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-#result select{max-width:150px}
-#log{max-height:260px;overflow:auto;font-size:12.5px;border-top:1px solid var(--line);padding-top:6px}
-#log div{padding:3px 0;border-bottom:1px dotted var(--line)}
-#log .tm{color:var(--muted);font-size:11px;margin-right:5px}
-#linkList{font-size:12.5px;max-height:200px;overflow:auto}
-#linkList div{display:flex;align-items:center;gap:5px;padding:2px 0}
+#result{border-left:2px solid var(--red);padding-left:11px;margin-top:12px;font-size:14px}
+#result .roll{display:block;font:600 11.5px/1.5 var(--mono);color:var(--muted);letter-spacing:-.01em}
+#result .title{font:700 14px/1.3 var(--cond);letter-spacing:.09em;text-transform:uppercase;
+  color:var(--red);margin-top:2px}
+#result .act{margin-top:9px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#result select{max-width:152px;font-size:13px}
+#log{max-height:270px;overflow:auto;font-size:12.5px}
+#log div{padding:4px 0;border-bottom:1px solid var(--hair)}
+#log .tm{font:400 11px/1 var(--mono);color:var(--muted);margin-right:6px}
+#linkList{font-size:12.5px;max-height:210px;overflow:auto}
+#linkList div{display:flex;align-items:center;gap:5px;padding:3px 0}
 #linkList .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#solved{background:var(--good);color:#fff;border-radius:5px;padding:8px 10px;margin-bottom:10px;
-  font-size:13.5px;display:none}
-#solved.on{display:block}
-details.ref{margin-bottom:8px}
-details.ref summary{cursor:pointer;font:600 12px/1.6 "Trebuchet MS",sans-serif;
-  letter-spacing:.06em;text-transform:uppercase;color:var(--accent2)}
-table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
-table.tbl th,table.tbl td{border:1px solid var(--line);padding:3px 6px;text-align:left;vertical-align:top}
-table.tbl th{background:var(--susp);font:600 11px/1.4 "Trebuchet MS",sans-serif;
-  letter-spacing:.05em;text-transform:uppercase}
-.cols{columns:2;font-size:12px}
+details.ref{border-top:1px solid var(--hair)}
+details.ref summary{cursor:pointer;padding:7px 0;font:700 12px/1.5 var(--cond);
+  letter-spacing:.11em;text-transform:uppercase;color:var(--blue)}
+details.ref[open] summary{color:var(--red)}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0 12px}
+table.tbl th,table.tbl td{border:1px solid var(--hair);padding:5px 8px;text-align:left;vertical-align:top}
+table.tbl td:first-child{font-family:var(--mono);white-space:nowrap;color:var(--red)}
+table.tbl th{background:var(--field);font:700 11px/1.5 var(--cond);letter-spacing:.11em;text-transform:uppercase}
+.tblwrap{overflow-x:auto}
+.cols{columns:220px;font:400 12.5px/1.7 var(--mono);margin-bottom:12px}
+.runs{max-width:66ch;font-size:13.5px}
+.runs p{margin:0 0 9px}
 @media print{
-  body{background:#fff}
+  body{background:#fff;color:#000}
   .noprint,#side{display:none!important}
   .layout{grid-template-columns:1fr}
   .wrap{max-width:none;padding:0}
-  .box{min-height:80px}
-  #matrixWrap{border:none;box-shadow:none}
+  .box{min-height:82px;background:#fff;border-color:#999}
+  #matrixWrap{border:none;box-shadow:none;background:#fff}
 }
 </style>
 </head>
@@ -159,19 +188,21 @@ table.tbl th{background:var(--susp);font:600 11px/1.4 "Trebuchet MS",sans-serif;
 
 <aside id="side">
   <div class="panel noprint">
-    <h2>Discovery Check &amp; Rolls</h2>
-    <div class="dice">
-      <button class="primary" data-roll="elements-clues">Elements: Clues</button>
-      <button class="primary" data-roll="elements-suspects">Elements: Suspects</button>
-      <button data-roll="exyes-clues">Exc. Yes: Clues</button>
-      <button data-roll="exyes-suspects">Exc. Yes: Suspects</button>
-      <button data-roll="clue">Roll a Clue (d100)</button>
-      <button data-roll="suspect">Roll a Suspect (d10)</button>
-      <button data-roll="focus">Event Focus (d100)</button>
-      <button data-roll="special">Special (d100)</button>
-      <button data-roll="desc-clues">Clue Descriptors</button>
-      <button data-roll="desc-suspects">Suspect Descriptors</button>
-    </div>
+    <h2>Rolls</h2>
+    <div class="grp"><span class="lbl">Mystery Elements Table</span><div class="dice">
+      <button class="primary" data-roll="elements-clues">Clues</button>
+      <button class="primary" data-roll="elements-suspects">Suspects</button></div></div>
+    <div class="grp"><span class="lbl">Discovery Check &mdash; Exceptional Yes</span><div class="dice">
+      <button data-roll="exyes-clues">Clues &times;2</button>
+      <button data-roll="exyes-suspects">Suspects &times;2</button></div></div>
+    <div class="grp"><span class="lbl">Roll on the Matrix</span><div class="dice">
+      <button data-roll="clue">Clue &middot; d100</button>
+      <button data-roll="suspect">Suspect &middot; d10</button></div></div>
+    <div class="grp"><span class="lbl">Other tables</span><div class="dice">
+      <button data-roll="special">Special &middot; d100</button>
+      <button data-roll="focus">Event Focus</button>
+      <button data-roll="desc-clues">Clue Words</button>
+      <button data-roll="desc-suspects">Suspect Words</button></div></div>
     <div id="result"><span class="roll">No rolls yet.</span></div>
   </div>
 
@@ -345,7 +376,7 @@ function drawLinks(){
   svg.setAttribute("viewBox","0 0 "+g.width+" "+g.height);
   svg.style.left = (g.left-wrap.left)+"px"; svg.style.top = (g.top-wrap.top)+"px";
   svg.style.width = g.width+"px"; svg.style.height = g.height+"px"; svg.style.inset="auto";
-  const col = getComputedStyle(document.body).getPropertyValue("--accent").trim();
+  const col = getComputedStyle(document.body).getPropertyValue("--red").trim() || "#b0261d";
   let h = "";
   for(const l of S.links){
     const a = centre("clues",l.c), b = centre("suspects",l.s);
@@ -713,9 +744,9 @@ window.addEventListener("resize", drawLinks);
 
 /* ============================ Reference ============================ */
 function refTable(title,rows,cols){
-  return '<details class="ref"><summary>'+title+'</summary><table class="tbl"><tr>'+
+  return '<details class="ref"><summary>'+title+'</summary><div class="tblwrap"><table class="tbl"><tr>'+
     cols.map(c=>'<th>'+c+'</th>').join("")+'</tr>'+
-    rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join("")+'</tr>').join("")+'</table></details>';
+    rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join("")+'</tr>').join("")+'</table></div></details>';
 }
 function buildRef(){
   const el = $("#reference");
@@ -733,7 +764,7 @@ function buildRef(){
       DESC.clues.map((w,i)=>(i+1)+": "+w).join("<br>")+'</div></details>'+
     '<details class="ref"><summary>Mystery Descriptors &mdash; Suspects</summary><div class="cols">'+
       DESC.suspects.map((w,i)=>(i+1)+": "+w).join("<br>")+'</div></details>'+
-    '<details class="ref"><summary>How a Mystery runs</summary><div class="hint" style="font-size:13px">'+
+    '<details class="ref"><summary>How a Mystery runs</summary><div class="runs">'+
       '<p><b>1.</b> Pull the Mystery Thread off your Threads List and write it in the Mystery box. It can only be resolved with these rules.</p>'+
       '<p><b>2.</b> Investigate normally. Any Clue or Suspect you think matters gets written in a box, and any Link you can justify gets drawn.</p>'+
       '<p><b>3.</b> Earn a Discovery Check by overcoming something uncertain, then ask the Fate Question &ldquo;Is anything discovered?&rdquo;. '+
