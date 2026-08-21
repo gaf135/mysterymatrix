@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mystery Matrix</title>
+<style>
+:root{
+  --bg:#f4f1ea; --panel:#fffdf8; --ink:#1e1b16; --muted:#6f6558; --line:#cfc6b5;
+  --accent:#8c2f1f; --accent2:#1f4e5f; --clue:#fdfaf2; --susp:#f1ece0;
+  --good:#2f6b3a; --warn:#a35c11; --shadow:0 1px 2px rgba(0,0,0,.08);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#17161a; --panel:#201f24; --ink:#eae6de; --muted:#9a9287; --line:#3c3a42;--clue:#26242b;--susp:#2c2a33;--accent:#e0755f;--accent2:#79b8cc;--good:#7bbd8a;--warn:#d9a04b;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:15px/1.45 "Iowan Old Style","Palatino Linotype",Georgia,serif;}
+h1,h2,h3{font-family:"Trebuchet MS",Avenir,Helvetica,sans-serif;margin:0 0 .4em}
+h1{font-size:22px;letter-spacing:.06em;text-transform:uppercase}
+h2{font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+h3{font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+button{font:inherit;font-family:"Trebuchet MS",Avenir,sans-serif;font-size:13px;
+  background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:4px;
+  padding:5px 9px;cursor:pointer;box-shadow:var(--shadow)}
+button:hover{border-color:var(--accent);color:var(--accent)}
+button.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+button.primary:hover{color:#fff;filter:brightness(1.1)}
+button.mini{padding:1px 6px;font-size:12px;box-shadow:none}
+input,select,textarea{font:inherit;background:transparent;color:var(--ink);
+  border:1px solid var(--line);border-radius:3px;padding:4px 6px}
+textarea{resize:none}
+.wrap{max-width:1380px;margin:0 auto;padding:16px}
+header.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;
+  border-bottom:2px solid var(--ink);padding-bottom:10px;margin-bottom:14px}
+header.top .grow{flex:1 1 320px}
+.toolbar{display:flex;gap:6px;flex-wrap:wrap}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:1050px){.layout{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:12px;margin-bottom:14px;box-shadow:var(--shadow)}
+
+/* ---- Matrix ---- */
+#matrixWrap{position:relative;background:var(--panel);border:1px solid var(--line);
+  border-radius:6px;padding:10px;box-shadow:var(--shadow)}
+#mysteryBar{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+#mysteryBar label{font:600 12px/1 "Trebuchet MS",sans-serif;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--accent)}
+#mysteryBar input{flex:1;font-size:16px;border:none;border-bottom:2px solid var(--line);border-radius:0}
+#grid{display:grid;grid-template-columns:repeat(20,1fr);gap:6px;position:relative;z-index:2}
+#links{position:absolute;inset:0;pointer-events:none;z-index:3;overflow:visible}
+.box{background:var(--clue);border:1px solid var(--line);border-radius:4px;
+  min-height:92px;padding:3px 4px;display:flex;flex-direction:column;position:relative}
+.box.suspect{background:var(--susp);border-color:var(--muted)}
+.box.empty textarea::placeholder{color:var(--muted);font-style:italic;font-size:11px}
+.box .hd{display:flex;align-items:center;gap:3px;font:600 10px/1.4 "Trebuchet MS",sans-serif;
+  color:var(--muted);letter-spacing:.04em}
+.box .num{color:var(--accent);font-size:11px}
+.box.suspect .num{color:var(--accent2)}
+.box .sp{flex:1}
+.box textarea{flex:1;width:100%;border:none;padding:2px;font-size:12.5px;line-height:1.25;
+  background:transparent;outline:none;overflow:hidden}
+.box .btns{display:flex;gap:2px;opacity:.35}
+.box:hover .btns,.box:focus-within .btns{opacity:1}
+.box .btns button{padding:0 3px;font-size:11px;line-height:1.4;box-shadow:none;background:transparent}
+.badge{display:inline-block;min-width:17px;text-align:center;border-radius:9px;padding:0 5px;
+  font:700 11px/1.5 "Trebuchet MS",sans-serif;background:var(--accent2);color:#fff}
+.badge.pts{background:var(--accent)}
+.badge.int{background:var(--warn)}
+.box.linksrc{outline:2px solid var(--accent);outline-offset:1px}
+.box.target{outline:2px dashed var(--accent2);outline-offset:1px;cursor:pointer}
+.box.clincher{border:2px solid var(--good);background:#eef6ee}
+.box.hi{animation:flash 1.4s ease-out}
+@keyframes flash{from{background:#ffe9a8}to{}}
+.rowtop .box,.rowbot .box{grid-column:span 4}
+.rowmid .box.clue{grid-column:span 4}
+.rowmid .box.suspect{grid-column:span 6}
+#footerRow{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;margin-top:8px;
+  align-items:center;text-align:center;font:600 11px/1 "Trebuchet MS",sans-serif;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.pp{display:flex;gap:6px;align-items:center;justify-content:center}
+.pp input{width:52px;text-align:center;font-size:16px;font-weight:700}
+.hint{font-size:12px;color:var(--muted);margin:4px 0 0}
+kbd{font:600 11px/1 "Trebuchet MS",sans-serif;border:1px solid var(--line);
+  border-radius:3px;padding:2px 4px;background:var(--bg)}
+
+/* ---- Side panels ---- */
+.dice{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.dice button{width:100%}
+#result{border-left:3px solid var(--accent);padding-left:10px;margin-top:10px;font-size:14px}
+#result .roll{font:700 12px/1.4 "Trebuchet MS",sans-serif;color:var(--muted);letter-spacing:.05em}
+#result .title{font-weight:700;color:var(--accent);font-size:15px}
+#result .act{margin-top:8px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+#result select{max-width:150px}
+#log{max-height:260px;overflow:auto;font-size:12.5px;border-top:1px solid var(--line);padding-top:6px}
+#log div{padding:3px 0;border-bottom:1px dotted var(--line)}
+#log .tm{color:var(--muted);font-size:11px;margin-right:5px}
+#linkList{font-size:12.5px;max-height:200px;overflow:auto}
+#linkList div{display:flex;align-items:center;gap:5px;padding:2px 0}
+#linkList .t{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#solved{background:var(--good);color:#fff;border-radius:5px;padding:8px 10px;margin-bottom:10px;
+  font-size:13.5px;display:none}
+#solved.on{display:block}
+details.ref{margin-bottom:8px}
+details.ref summary{cursor:pointer;font:600 12px/1.6 "Trebuchet MS",sans-serif;
+  letter-spacing:.06em;text-transform:uppercase;color:var(--accent2)}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:6px}
+table.tbl th,table.tbl td{border:1px solid var(--line);padding:3px 6px;text-align:left;vertical-align:top}
+table.tbl th{background:var(--susp);font:600 11px/1.4 "Trebuchet MS",sans-serif;
+  letter-spacing:.05em;text-transform:uppercase}
+.cols{columns:2;font-size:12px}
+@media print{
+  body{background:#fff}
+  .noprint,#side{display:none!important}
+  .layout{grid-template-columns:1fr}
+  .wrap{max-width:none;padding:0}
+  .box{min-height:80px}
+  #matrixWrap{border:none;box-shadow:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <div class="grow">
+    <h1>Mystery Matrix</h1>
+    <div class="hint">Investigation tracker for Mythic Magazine Vol.&nbsp;6 &mdash; Creating Mystery Adventures</div>
+  </div>
+  <div class="toolbar noprint">
+    <button id="btnPrint">Print</button>
+    <button id="btnExport">Export</button>
+    <button id="btnImport">Import</button>
+    <button id="btnReset">New Case</button>
+  </div>
+</header>
+
+<div class="layout">
+<main>
+  <div id="matrixWrap">
+    <div id="mysteryBar">
+      <label for="mysteryTxt">Mystery</label>
+      <input id="mysteryTxt" placeholder="The Thread that is the Mystery, e.g. &ldquo;Discover who the killer is&rdquo;">
+    </div>
+    <div id="solved"></div>
+    <svg id="links"></svg>
+    <div id="grid"></div>
+    <div id="footerRow">
+      <div>Clues<div class="pp noprint"><button class="mini" data-pp="clues" data-d="-1">&minus;</button>
+        <input id="ppClues" type="number" value="0"><button class="mini" data-pp="clues" data-d="1">+</button></div></div>
+      <div>Progress Points</div>
+      <div>Suspects<div class="pp noprint"><button class="mini" data-pp="suspects" data-d="-1">&minus;</button>
+        <input id="ppSuspects" type="number" value="0"><button class="mini" data-pp="suspects" data-d="1">+</button></div></div>
+    </div>
+    <p class="hint noprint">Type in any box to record a Clue or Suspect. <kbd>&#128279;</kbd> starts a Link &mdash; then click
+      the box to link it to (link a pair again to strengthen it). <kbd>&#8593;</kbd> Intensifies a Clue,
+      <kbd>&starf;</kbd> marks the Clincher Clue, <kbd>&times;</kbd> clears a box.</p>
+  </div>
+</main>
+
+<aside id="side">
+  <div class="panel noprint">
+    <h2>Discovery Check &amp; Rolls</h2>
+    <div class="dice">
+      <button class="primary" data-roll="elements-clues">Elements: Clues</button>
+      <button class="primary" data-roll="elements-suspects">Elements: Suspects</button>
+      <button data-roll="exyes-clues">Exc. Yes: Clues</button>
+      <button data-roll="exyes-suspects">Exc. Yes: Suspects</button>
+      <button data-roll="clue">Roll a Clue (d100)</button>
+      <button data-roll="suspect">Roll a Suspect (d10)</button>
+      <button data-roll="focus">Event Focus (d100)</button>
+      <button data-roll="special">Special (d100)</button>
+      <button data-roll="desc-clues">Clue Descriptors</button>
+      <button data-roll="desc-suspects">Suspect Descriptors</button>
+    </div>
+    <div id="result"><span class="roll">No rolls yet.</span></div>
+  </div>
+
+  <div class="panel noprint">
+    <h2>Links <span class="hint" id="linkCount"></span></h2>
+    <div id="linkList"></div>
+  </div>
+
+  <div class="panel noprint">
+    <h2>Difficulty</h2>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <label>Clincher at <input id="threshold" type="number" min="1" value="6" style="width:52px"> Clue Points</label>
+      <button class="mini" id="btnEasy">Easier (PP&nbsp;3)</button>
+      <button class="mini" id="btnHard">Harder (PP&nbsp;&minus;3)</button>
+    </div>
+    <p class="hint">Default 6 Clue Points and 0 starting Progress Points. 4 makes a faster Mystery, 8 a longer one.</p>
+  </div>
+
+  <div class="panel noprint">
+    <h2>Journal</h2>
+    <div id="log"></div>
+  </div>
+</aside>
+</div>
+
+<div class="panel noprint" id="reference"><h2>Reference Tables</h2></div>
+</div>
+<input type="file" id="fileIn" accept="application/json" style="display:none">
+<script>
+"use strict";
+/* ============================ Data tables ============================ */
+const DESC = {clues:[
+  "Abandoned","Abnormal","Academic","Amusing","Animal","Aromatic","Art","Awkward","Beautiful",
+  "Bizarre","Business","Careless","Classy","Clean","Clothing","Cold","Colorful","Communication",
+  "Complicated","Container","Creepy","Damaged","Dangerous","Delicate","Descriptive","Detailed",
+  "Dirty","Disgusting","Dispute","Empty","Exotic","Extravagant","Familiar","Fancy","Feminine",
+  "Festive","Food","Frightening","Furnishing","Hard","Heavy","Hidden","Home","Information",
+  "Intense","Intrigue","Investment","Juvenile","Large","Legal","Lethal","Lies","Loud","Luxury",
+  "Magnificent","Masculine","Meaningful","Mechanical","Messy","Military","Misfortune","Modern",
+  "Motive","Mundane","Mysterious","Natural","Neat","Obscure","Odd","Official","Old","Partial",
+  "Passion","Personal","Plot","Portal","Possession","Powerful","Quaint","Rare","Reassuring",
+  "Ruined","Rumor","Scientific","Simple","Small","Soft","Technology","Threatening","Tool",
+  "Travel","Uncertain","Valuable","Vehicle","Warm","Waste","Wealth","Weapon","Wet","Work"], suspects:[
+  "Afraid","Aggressive","Aggrieved","Angry","Anxious","Argumentative","Assist","Associate",
+  "Awkward","Beautiful","Bizarre","Bold","Brave","Burden","Business","Busy","Calm","Careful",
+  "Careless","Classy","Competition","Connected","Conniving","Corrupt","Creepy","Dangerous",
+  "Deceive","Defiant","Desperate","Dispute","Elusive","Emotional","Enemy","Exotic","Failure",
+  "Fame","Family","Feminine","Fleeing","Foolish","Frantic","Friend","Frightening","Frivolous",
+  "Happy","Harmful","Helpful","Helpless","Home","Important","Information","Intellect",
+  "Involved","Jealousy","Juvenile","Lazy","Leadership","Legal","Love","Loyal","Masculine",
+  "Mature","Misfortune","Missing","Motivated","Mundane","Mysterious","Negligent","Odd",
+  "Official","Old","Passionate","Poor","Power","Privileged","Professional","Protective","Quiet",
+  "Reassuring","Representative","Resourceful","Rough","Ruthless","Secretive","Skilled",
+  "Stealthy","Strong","Success","Suffering","Suspicious","Tension","Threatening","Unhelpful",
+  "Unknown","Unusual","Vengeance","Wealthy","Witness","Work","Young"]};
+
+const SPECIAL = [
+ [1,10,"Unclinch","If you have reached the Clincher Clue, you discover something that disqualifies it (remove that Clue from the Matrix) and the Mystery is active again. If there is no Clincher yet, treat this as New Clue."],
+ [11,25,"Remove Clue/Suspect","An already discovered Clue or Suspect is removed. Roll on the Matrix for which one. If you have none yet, treat as New Clue/Suspect."],
+ [26,75,"Intensify Clue","An existing Clue becomes more important. Roll on the Matrix for the Clue. Every Suspect linked to it gains one more Clue Point for it, and the bonus stacks. If you have no Clues yet, treat as New Clue."],
+ [76,90,"Progress Points &minus;3","Deduct 3 Progress Points from this column. It cannot drop below 0."],
+ [91,100,"Progress Points +3","Add 3 Progress Points to this column."]];
+
+const FOCUS = [
+ [1,15,"Clue Element","Free roll on the Mystery Elements Table, Clues column."],
+ [16,30,"Suspect Element","Free roll on the Mystery Elements Table, Suspects column."],
+ [31,34,"Remote Event",""],[35,38,"Ambiguous Event",""],[39,44,"New NPC",""],
+ [45,58,"NPC Action",""],[59,66,"NPC Negative",""],[67,71,"NPC Positive",""],
+ [72,79,"Move Toward A Thread",""],[80,84,"Move Away From A Thread",""],
+ [85,86,"Close A Thread",""],[87,94,"PC Negative",""],[95,100,"PC Positive",""]];
+
+/* Mystery Elements Table: 1d10 + Progress Points for that column */
+const ELEMENTS = [
+ [-99,5,"new","New {E}","Record the {e} in any open box. It is not Linked to anything, so Interpret it in a way that gives no clear Link yet."],
+ [6,8,"newlinked","New Linked {E}","Generate the new {e}, then roll for the {other} it Links to and draw the Link. If there is nothing to Link to yet, create one to complete the Link."],
+ [9,10,"linkornew","Link Clue To Suspect, or New {E}","Roll a Clue and a Suspect and Link them. Early on, with no Clues or no Suspects yet, treat this as New {E}."],
+ [11,11,"twice","Roll Twice, or Link Clue To Suspect","Roll two more times in this same column. A second Roll Twice becomes Link Clue To Suspect. Still only 1 Progress Point for the trip."],
+ [12,12,"new","New {E}","Record the {e} in any open box, unlinked."],
+ [13,13,"special","Special","Roll 1d100 on the Mystery Special Table."],
+ [14,15,"clincher","Clincher Clue","Clues column only; on the Suspects column this is Link Clue To Suspect."],
+ [16,999,"linkpp6","Link Clue To Suspect, PP&minus;6","Link a Clue to a Suspect, then reduce this column's Progress Points by 6."]];
+
+/* 20 Clue boxes, in Matrix order; index 0-19 maps to 1d100 in 5-point bands */
+const BAND = i => ((i*5)+1) + "-" + ((i+1)*5);
+
+/* ============================ State ============================ */
+const BLANK = () => ({
+  mystery:"", clues:Array.from({length:20},()=>({t:"",int:0})),
+  suspects:Array.from({length:10},()=>({t:""})),
+  links:[], pp:{clues:0,suspects:0}, clincher:null, threshold:6, log:[]
+});
+const KEY = "mysteryMatrix.v1";
+let S = load();
+function load(){
+  try{ const r=JSON.parse(localStorage.getItem(KEY)); if(r&&r.clues&&r.clues.length===20){
+    return Object.assign(BLANK(), r); } }catch(e){}
+  return BLANK();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ============================ Helpers ============================ */
+const $ = s => document.querySelector(s);
+const die = n => Math.floor(Math.random()*n)+1;
+const band = n => Math.ceil(n/5)-1;                      // d100 -> clue index
+const esc = s => String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const filled = kind => S[kind].map((o,i)=>({i,t:o.t.trim()})).filter(o=>o.t);
+const label = (kind,i) => (kind==="clues" ? "Clue "+BAND(i) : "Suspect "+(i+1)) +
+  (S[kind][i].t.trim() ? ": "+S[kind][i].t.trim() : " (empty)");
+function lookup(tbl,n){ for(const r of tbl) if(n>=r[0]&&n<=r[1]) return r; return tbl[tbl.length-1]; }
+function findLink(c,s){ return S.links.find(l=>l.c===c&&l.s===s); }
+/* Clue Points: each Link is worth its strength plus the Clue's Intensify bonus */
+function points(si){ return S.links.filter(l=>l.s===si)
+  .reduce((a,l)=>a + l.n + (S.clues[l.c].int||0), 0); }
+function topSuspects(){
+  const f = filled("suspects").map(o=>({i:o.i,p:points(o.i)}));
+  if(!f.length) return [];
+  const max = Math.max(...f.map(o=>o.p));
+  return max>0 ? f.filter(o=>o.p===max) : [];
+}
+function logIt(txt){
+  S.log.unshift({t:new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), x:txt});
+  S.log = S.log.slice(0,200); save(); renderLog();
+}
+
+/* ============================ Matrix render ============================ */
+function boxHTML(kind,i){
+  const o = S[kind][i], isClue = kind==="clues";
+  const num = isClue ? BAND(i) : (i+1);
+  const badge = isClue
+    ? (o.int ? '<span class="badge int" title="Intensify: every Link to this Clue is worth '+(1+o.int)+' Clue Points">&times;'+(1+o.int)+'</span>' : '')
+    : ((o.t.trim()||points(i)) ? '<span class="badge pts" title="Clue Points">'+points(i)+'</span>' : '');
+  return '<div class="box '+(isClue?'clue':'suspect')+(o.t.trim()?'':' empty')+
+      (S.clincher===i&&isClue?' clincher':'')+'" data-kind="'+kind+'" data-i="'+i+'">'+
+    '<div class="hd"><span class="num">'+num+'</span>'+badge+'<span class="sp"></span>'+
+      '<span class="btns noprint">'+
+        '<button data-act="link" title="Link">&#128279;</button>'+
+        (isClue?'<button data-act="int" title="Intensify Clue">&#8593;</button>'+
+                '<button data-act="clinch" title="Mark as Clincher Clue">&starf;</button>':'')+
+        '<button data-act="clear" title="Remove">&times;</button>'+
+      '</span></div>'+
+    '<textarea data-kind="'+kind+'" data-i="'+i+'" placeholder="'+
+      (isClue?'Choose Most Logical Clue':'Choose Most Logical Suspect')+'">'+esc(o.t)+'</textarea></div>';
+}
+function renderGrid(){
+  let h = '<div style="display:contents" class="rowtop">';
+  for(let i=0;i<5;i++) h += boxHTML("clues",i);
+  h += '</div>';
+  for(let r=0;r<5;r++){
+    h += '<div style="display:contents" class="rowmid">';
+    h += boxHTML("clues", 5 + r*2);
+    h += boxHTML("suspects", r*2) + boxHTML("suspects", r*2+1);
+    h += boxHTML("clues", 6 + r*2);
+    h += '</div>';
+  }
+  h += '<div style="display:contents" class="rowbot">';
+  for(let i=15;i<20;i++) h += boxHTML("clues",i);
+  h += '</div>';
+  $("#grid").innerHTML = h;
+  document.querySelectorAll("#grid textarea").forEach(sizeTA);
+  drawLinks();
+}
+function sizeTA(ta){ ta.style.height="auto"; ta.style.height=Math.max(58,ta.scrollHeight)+"px"; }
+
+function centre(kind,i){
+  const el = document.querySelector('.box[data-kind="'+kind+'"][data-i="'+i+'"]');
+  const g = $("#grid").getBoundingClientRect(), b = el.getBoundingClientRect();
+  return {x:b.left-g.left+b.width/2, y:b.top-g.top+b.height/2, w:b.width, h:b.height};
+}
+function drawLinks(){
+  const svg = $("#links"), g = $("#grid").getBoundingClientRect(), wrap = $("#matrixWrap").getBoundingClientRect();
+  svg.setAttribute("viewBox","0 0 "+g.width+" "+g.height);
+  svg.style.left = (g.left-wrap.left)+"px"; svg.style.top = (g.top-wrap.top)+"px";
+  svg.style.width = g.width+"px"; svg.style.height = g.height+"px"; svg.style.inset="auto";
+  const col = getComputedStyle(document.body).getPropertyValue("--accent").trim();
+  let h = "";
+  for(const l of S.links){
+    const a = centre("clues",l.c), b = centre("suspects",l.s);
+    h += '<line x1="'+a.x+'" y1="'+a.y+'" x2="'+b.x+'" y2="'+b.y+'" stroke="'+col+
+         '" stroke-width="'+Math.min(4,1.2+0.6*(l.n-1))+'" stroke-opacity=".5"/>';
+    if(l.n>1||S.clues[l.c].int){
+      const mx=(a.x+b.x)/2, my=(a.y+b.y)/2, v=l.n+(S.clues[l.c].int||0);
+      h += '<circle cx="'+mx+'" cy="'+my+'" r="9" fill="'+col+'"/>'+
+           '<text x="'+mx+'" y="'+(my+4)+'" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">'+v+'</text>';
+    }
+  }
+  svg.innerHTML = h;
+}
+
+/* ============================ Mutations ============================ */
+function addLink(c,s,quiet){
+  const before = points(s), ex = findLink(c,s);
+  if(ex){ ex.n++; if(!quiet) logIt("Strengthened Link &mdash; "+esc(label("clues",c))+" &rarr; "+
+      esc(label("suspects",s))+" (now worth "+(ex.n+(S.clues[c].int||0))+")"); }
+  else { S.links.push({c:c,s:s,n:1}); if(!quiet) logIt("Linked "+esc(label("clues",c))+" &rarr; "+esc(label("suspects",s))); }
+  refresh(); flash("suspects",s); checkClincher(s,before);
+}
+function dropLink(c,s){ S.links = S.links.filter(l=>!(l.c===c&&l.s===s));
+  logIt("Removed Link &mdash; "+esc(label("clues",c))+" &rarr; "+esc(label("suspects",s))); refresh(); }
+function intensify(c,d){
+  const before = S.suspects.map((o,i)=>points(i));
+  S.clues[c].int = Math.max(0,(S.clues[c].int||0)+d);
+  logIt((d>0?"Intensified ":"Reduced ")+esc(label("clues",c))+" &mdash; each Link to it is now worth "+(1+S.clues[c].int));
+  refresh(); S.links.filter(l=>l.c===c).forEach(l=>checkClincher(l.s, before[l.s]));
+}
+function clearBox(kind,i){
+  if(S[kind][i].t.trim() && !confirm("Remove "+label(kind,i).replace(/&/g,"&")+"?")) return;
+  logIt("Removed "+esc(label(kind,i)));
+  S[kind][i] = kind==="clues" ? {t:"",int:0} : {t:""};
+  S.links = S.links.filter(l => kind==="clues" ? l.c!==i : l.s!==i);
+  if(kind==="clues" && S.clincher===i) S.clincher=null;
+  refresh();
+}
+function setPP(kind,v){ S.pp[kind]=v; $("#pp"+(kind==="clues"?"Clues":"Suspects")).value=v; save(); }
+function bumpPP(kind,d,floor0){
+  let v = S.pp[kind]+d; if(floor0 && v<0) v=0;
+  setPP(kind,v); logIt("Progress Points ("+kind+") "+(d>0?"+":"")+d+" &rarr; "+v);
+}
+function setClincher(c){
+  S.clincher = (S.clincher===c ? null : c);
+  logIt(S.clincher===null ? "Clincher Clue cleared" : "Clincher Clue: "+esc(label("clues",c)));
+  refresh();
+}
+function flash(kind,i){ const el=document.querySelector('.box[data-kind="'+kind+'"][data-i="'+i+'"]');
+  if(el){ el.classList.remove("hi"); void el.offsetWidth; el.classList.add("hi"); } }
+function checkClincher(si,before){
+  if(S.clincher!==null){ renderSolved(); return; }
+  if(points(si) >= S.threshold && (before===undefined || before < S.threshold))
+    logIt("<b>"+esc(label("suspects",si))+" has reached "+points(si)+" Clue Points &mdash; the Clue that pushed them there is the Clincher Clue.</b>");
+  renderSolved();
+}
+function renderSolved(){
+  const el = $("#solved"), tops = topSuspects();
+  const auto = filled("suspects").filter(o=>points(o.i)>=S.threshold);
+  if(S.clincher!==null && tops.length){
+    el.className="on"; el.innerHTML = "<b>Mystery solved.</b> Clincher Clue: &ldquo;"+esc(S.clues[S.clincher].t||"(unwritten)")+
+      "&rdquo; &mdash; guilty Suspect: "+tops.map(o=>esc(S.suspects[o.i].t||("#"+(o.i+1)))).join(" / ")+
+      " with "+tops[0].p+" Clue Points.";
+  } else if(auto.length){
+    el.className="on"; el.innerHTML = "<b>"+auto.map(o=>esc(S.suspects[o.i].t||("#"+(o.i+1)))).join(", ")+
+      "</b> reached "+S.threshold+" Clue Points &mdash; a Clincher Clue is automatically generated. Mark it with &starf;.";
+  } else el.className="";
+}
+
+/* ============================ Rolling ============================ */
+let RC = 0;                                   // result card counter for action ids
+const ACTS = {};                              // id -> function
+function act(fn,txt,cls){ const id="a"+(++RC); ACTS[id]=fn;
+  return '<button id="'+id+'"'+(cls?' class="'+cls+'"':'')+'>'+txt+'</button>'; }
+function bindActs(){ for(const id in ACTS){ const b=document.getElementById(id);
+  if(b && !b._b){ b._b=1; b.onclick=()=>ACTS[id](b); } } }
+function show(html){ $("#result").innerHTML = html; bindActs(); }
+
+function sel(kind,pre,tag){
+  const list = filled(kind);
+  let h = '<select data-sel="'+tag+'">';
+  if(!list.length) h += '<option value="">(none recorded)</option>';
+  list.forEach(o => h += '<option value="'+o.i+'"'+(o.i===pre?" selected":"")+'>'+esc(label(kind,o.i))+'</option>');
+  return h+'</select>';
+}
+function selEmpty(kind,tag){
+  const list = S[kind].map((o,i)=>({i,t:o.t.trim()})).filter(o=>!o.t);
+  let h = '<select data-sel="'+tag+'">';
+  if(!list.length) h += '<option value="">(matrix full &mdash; replace your least important entry)</option>';
+  list.forEach(o => h += '<option value="'+o.i+'">'+(kind==="clues"?"Clue "+BAND(o.i):"Suspect "+(o.i+1))+'</option>');
+  return h+'</select>';
+}
+const selVal = (tag,btn) => { const scope=(btn&&btn.closest(".act"))||document;
+  const e=scope.querySelector('[data-sel="'+tag+'"]'); return e&&e.value!==""?+e.value:null; };
+
+function linkUI(rc,rs,note){
+  const cEmpty = rc===null || !S.clues[rc].t.trim(), sEmpty = rs===null || !S.suspects[rs].t.trim();
+  const c = cEmpty ? null : rc, s = sEmpty ? null : rs;
+  return '<div class="act">'+ sel("clues",c,"lc") + '&rarr;' + sel("suspects",s,"ls") +
+    act($b=>{ const a=selVal("lc",$b), b=selVal("ls",$b);
+      if(a===null||b===null){ alert("Record a Clue and a Suspect on the Matrix first."); return; }
+      addLink(a,b); show('<span class="roll">Link recorded.</span>'); },"Link","primary")+'</div>'+
+    ((cEmpty||sEmpty)?'<p class="hint">Rolled an empty box &mdash; Choose Most Logical '+
+      [cEmpty?"Clue":null,sEmpty?"Suspect":null].filter(Boolean).join(" and ")+'.</p>':'')+(note||"");
+}
+function newUI(kind,extra){
+  return '<div class="act">'+selEmpty(kind,"nb")+
+    act($b=>{ const i=selVal("nb",$b); if(i===null) return;
+      const ta=document.querySelector('textarea[data-kind="'+kind+'"][data-i="'+i+'"]');
+      ta.focus(); flash(kind,i); },"Write it in")+
+    act(()=>show(descHTML(kind)),"Descriptors")+'</div>'+(extra||"");
+}
+function descHTML(kind){
+  const a=die(100), b=die(100), w1=DESC[kind][a-1], w2=DESC[kind][b-1];
+  const same = w1===w2;
+  logIt("Descriptors ("+kind+"): "+w1+" / "+w2);
+  return '<div class="roll">Mystery Descriptors &mdash; '+kind+' ('+a+', '+b+')</div>'+
+    '<div class="title">'+w1+' &nbsp;&middot;&nbsp; '+w2+'</div>'+
+    (same?'<p class="hint">Doubled down &mdash; go with a more intense Interpretation of this word.</p>':'');
+}
+
+function rollElements(kind,opts){
+  opts = opts||{};
+  const d = die(10), pp = S.pp[kind], total = d+pp;
+  const head = '<div class="roll">Mystery Elements &mdash; '+(kind==="clues"?"Clues":"Suspects")+
+    ': 1d10 ['+d+'] + PP ['+pp+'] = <b>'+total+'</b></div>';
+  const body = resolveElement(kind,total,opts.depth||0);
+  if(!opts.noPP) bumpPP(kind,1);
+  return head+body;
+}
+function resolveElement(kind,total,depth){
+  const row = lookup(ELEMENTS,total);
+  let code = row[2];
+  const E = kind==="clues"?"Clue":"Suspect", e = E.toLowerCase(),
+        other = kind==="clues"?"Suspect":"Clue";
+  const title = t => '<div class="title">'+t.replace(/{E}/g,E).replace(/{e}/g,e).replace(/{other}/g,other)+'</div>';
+  const desc  = '<p class="hint">'+row[4].replace(/{E}/g,E).replace(/{e}/g,e).replace(/{other}/g,other)+'</p>';
+
+  if(code==="clincher" && kind==="suspects") code="link";
+  if(code==="twice" && depth>0) code="link";
+  if(code==="linkornew") code = (filled("clues").length && filled("suspects").length) ? "link" : "new";
+
+  switch(code){
+    case "new":
+      return title("New "+E)+desc+newUI(kind);
+    case "newlinked": {
+      const rc = kind==="clues" ? null : band(die(100)), rs = kind==="clues" ? die(10)-1 : null;
+      const rolled = kind==="clues"
+        ? '<p class="hint">Rolled Suspect '+(rs+1)+' &mdash; '+esc(label("suspects",rs))+'</p>'
+        : '<p class="hint">Rolled Clue '+BAND(rc)+' &mdash; '+esc(label("clues",rc))+'</p>';
+      return title("New Linked "+E)+desc+rolled+newUI(kind,"")+
+        '<p class="hint">Then draw the Link:</p>'+linkUI(rc,rs);
+    }
+    case "link": case "linkpp6": {
+      const rc = band(die(100)), rs = die(10)-1;
+      const t = title(code==="linkpp6" ? "Link Clue To Suspect, PP&minus;6" : "Link Clue To Suspect");
+      let extra = "";
+      if(code==="linkpp6"){ bumpPP(kind,-6); extra = '<p class="hint">Progress Points ('+kind+') reduced by 6, now '+S.pp[kind]+'.</p>'; }
+      return t+'<p class="hint">Rolled Clue '+BAND(rc)+' and Suspect '+(rs+1)+'.</p>'+extra+linkUI(rc,rs);
+    }
+    case "twice": {
+      return title("Roll Twice")+desc+
+        '<div style="margin-top:8px">'+resolveElement(kind,die(10)+S.pp[kind],1)+'</div>'+
+        '<div style="margin-top:12px;border-top:1px dotted var(--line);padding-top:8px">'+
+        resolveElement(kind,die(10)+S.pp[kind],1)+'</div>';
+    }
+    case "special":
+      return title("Special")+specialHTML(kind);
+    case "clincher": {
+      const tops = topSuspects();
+      const pre = tops.length ? tops[0].i : null;
+      return title("Clincher Clue")+
+        '<p class="hint">Generate a new Clue and Link it to the Suspect with the most Clue Points'+
+        (tops.length>1?' &mdash; there is a tie, choose the most logical.':'')+
+        ' That Suspect is the answer to your Mystery.</p>'+
+        '<div class="act">'+selEmpty("clues","cb")+'&rarr;'+sel("suspects",pre,"ls")+
+        act($b=>{ const c=selVal("cb",$b), s=selVal("ls",$b);
+          if(c===null||s===null){ alert("You need an open Clue box and a recorded Suspect."); return; }
+          S.clincher=c; addLink(c,s,true);
+          logIt("<b>CLINCHER CLUE</b> &mdash; "+esc(label("clues",c))+" &rarr; "+esc(label("suspects",s)));
+          refresh();
+          const ta=document.querySelector('textarea[data-kind="clues"][data-i="'+c+'"]'); ta.focus(); flash("clues",c);
+          show('<span class="roll">Clincher recorded. Write the Clue that ends the case.</span>');
+        },"Record Clincher","primary")+
+        act(()=>show(descHTML("clues")),"Descriptors")+'</div>';
+    }
+  }
+}
+
+function specialHTML(kind){
+  const r = die(100), row = lookup(SPECIAL,r);
+  logIt("Special ["+r+"]: "+row[2].replace(/&minus;/g,"-"));
+  const head = '<div class="roll">Mystery Special &mdash; 1d100 ['+r+']</div><div class="title">'+row[2]+'</div>'+
+    '<p class="hint">'+row[3]+'</p>';
+  const cols = kind ? [kind] : ["clues","suspects"];
+  const ppBtns = d => '<div class="act">'+cols.map(c=>
+      act(()=>{ bumpPP(c,d,d<0); show('<span class="roll">Progress Points ('+c+') now '+S.pp[c]+'.</span>'); },
+      (d>0?"+3":"&minus;3")+" to "+c,"primary")).join("")+'</div>';
+
+  if(row[2]==="Unclinch"){
+    if(S.clincher===null) return head+'<p class="hint">No Clincher yet &mdash; treat as New Clue.</p>'+newUI("clues");
+    const c = S.clincher;
+    return head+'<div class="act">'+act(()=>{ S.clincher=null; clearBox("clues",c);
+      show('<span class="roll">Clincher disqualified. The Mystery is active again.</span>'); },
+      "Remove &ldquo;"+esc(S.clues[c].t||BAND(c))+"&rdquo;","primary")+'</div>';
+  }
+  if(row[2].indexOf("Remove")===0){
+    const k = kind || "clues";
+    if(!filled(k).length) return head+'<p class="hint">Nothing to remove &mdash; treat as New '+
+      (k==="clues"?"Clue":"Suspect")+'.</p>'+newUI(k);
+    const ri = k==="clues" ? band(die(100)) : die(10)-1;
+    const pre = S[k][ri].t.trim() ? ri : null;
+    return head+'<p class="hint">Rolled '+(k==="clues"?"Clue "+BAND(ri):"Suspect "+(ri+1))+
+      (pre===null?' &mdash; empty, so Choose Most Logical.':'')+'</p><div class="act">'+sel(k,pre,"rm")+
+      act($b=>{ const i=selVal("rm",$b); if(i===null) return; clearBox(k,i);
+        show('<span class="roll">Removed.</span>'); },"Remove","primary")+'</div>';
+  }
+  if(row[2]==="Intensify Clue"){
+    if(!filled("clues").length) return head+'<p class="hint">No Clues yet &mdash; treat as New Clue.</p>'+newUI("clues");
+    const ri = band(die(100)), pre = S.clues[ri].t.trim() ? ri : null;
+    return head+'<p class="hint">Rolled Clue '+BAND(ri)+(pre===null?' &mdash; empty, so Choose Most Logical.':'')+
+      '</p><div class="act">'+sel("clues",pre,"in")+
+      act($b=>{ const i=selVal("in",$b); if(i===null) return; intensify(i,1);
+        show('<span class="roll">Intensified &mdash; every Link to it is now worth '+(1+S.clues[i].int)+' Clue Points.</span>'); },
+        "Intensify","primary")+'</div>';
+  }
+  return head + ppBtns(row[2].indexOf("+3")>0 ? 3 : -3);
+}
+
+function focusHTML(){
+  const r = die(100), row = lookup(FOCUS,r);
+  logIt("Event Focus ["+r+"]: "+row[2]);
+  let h = '<div class="roll">Mystery Event Focus &mdash; 1d100 ['+r+']</div><div class="title">'+row[2]+'</div>'+
+    (row[3]?'<p class="hint">'+row[3]+'</p>':'');
+  if(row[2]==="Clue Element")    h += '<div style="margin-top:8px">'+rollElements("clues")+'</div>';
+  if(row[2]==="Suspect Element") h += '<div style="margin-top:8px">'+rollElements("suspects")+'</div>';
+  return h;
+}
+
+/* ============================ Panels ============================ */
+function renderLinks(){
+  const el = $("#linkList");
+  $("#linkCount").textContent = S.links.length ? "("+S.links.length+")" : "";
+  if(!S.links.length){ el.innerHTML = '<p class="hint">No Links yet. Link a Clue to a Suspect to give them Clue Points.</p>'; return; }
+  el.innerHTML = S.links.slice().sort((a,b)=>a.s-b.s||a.c-b.c).map(l=>{
+    const v = l.n + (S.clues[l.c].int||0);
+    return '<div><span class="badge pts">'+v+'</span><span class="t">'+
+      esc((S.clues[l.c].t||BAND(l.c)))+' &rarr; '+esc((S.suspects[l.s].t||("#"+(l.s+1))))+'</span>'+
+      '<button class="mini" data-lk="up" data-c="'+l.c+'" data-s="'+l.s+'" title="Strengthen">+</button>'+
+      '<button class="mini" data-lk="dn" data-c="'+l.c+'" data-s="'+l.s+'" title="Weaken">&minus;</button>'+
+      '<button class="mini" data-lk="rm" data-c="'+l.c+'" data-s="'+l.s+'" title="Remove Link">&times;</button></div>';
+  }).join("");
+}
+function renderLog(){
+  $("#log").innerHTML = S.log.length
+    ? S.log.map(e=>'<div><span class="tm">'+e.t+'</span>'+e.x+'</div>').join("")
+    : '<p class="hint">Rolls and Matrix changes are recorded here.</p>';
+}
+function refresh(){ save(); renderGrid(); renderLinks(); renderSolved(); }
+
+/* ============================ Events ============================ */
+$("#grid").addEventListener("input", e=>{
+  const ta = e.target; if(ta.tagName!=="TEXTAREA") return;
+  S[ta.dataset.kind][+ta.dataset.i].t = ta.value; sizeTA(ta); save();
+  ta.closest(".box").classList.toggle("empty", !ta.value.trim());
+  renderLinks();
+});
+let pending = null;
+$("#grid").addEventListener("click", e=>{
+  const btn = e.target.closest("button"), box = e.target.closest(".box");
+  if(!box) return;
+  const kind = box.dataset.kind, i = +box.dataset.i;
+  if(btn){
+    const a = btn.dataset.act;
+    if(a==="clear")  return clearBox(kind,i);
+    if(a==="int")    return intensify(i, e.shiftKey?-1:1);
+    if(a==="clinch") return setClincher(i);
+    if(a==="link"){
+      if(pending && pending.kind!==kind){ finishLink(kind,i); return; }
+      if(pending && pending.kind===kind && pending.i===i){ pending=null; markPending(); return; }
+      pending = {kind,i}; markPending(); return;
+    }
+    return;
+  }
+  if(pending && pending.kind!==kind) finishLink(kind,i);
+});
+function finishLink(kind,i){
+  const c = kind==="clues" ? i : pending.i, s = kind==="suspects" ? i : pending.i;
+  pending = null; markPending(); addLink(c,s);
+}
+function markPending(){
+  document.querySelectorAll(".box").forEach(b=>{
+    b.classList.remove("linksrc","target");
+    if(!pending) return;
+    if(b.dataset.kind===pending.kind && +b.dataset.i===pending.i) b.classList.add("linksrc");
+    else if(b.dataset.kind!==pending.kind) b.classList.add("target");
+  });
+}
+document.addEventListener("keydown", e=>{ if(e.key==="Escape" && pending){ pending=null; markPending(); } });
+
+$("#linkList").addEventListener("click", e=>{
+  const b = e.target.closest("button[data-lk]"); if(!b) return;
+  const c=+b.dataset.c, s=+b.dataset.s, l=findLink(c,s);
+  if(b.dataset.lk==="up") addLink(c,s);
+  else if(b.dataset.lk==="rm") dropLink(c,s);
+  else if(l){ if(l.n<=1) dropLink(c,s); else { l.n--; logIt("Weakened Link &mdash; "+esc(label("clues",c))+" &rarr; "+esc(label("suspects",s))); refresh(); } }
+});
+
+document.querySelectorAll("[data-pp]").forEach(b=>b.onclick=()=>bumpPP(b.dataset.pp, +b.dataset.d));
+["Clues","Suspects"].forEach(k=>{
+  $("#pp"+k).addEventListener("change", e=> setPP(k.toLowerCase(), parseInt(e.target.value,10)||0));
+});
+$("#mysteryTxt").addEventListener("input", e=>{ S.mystery=e.target.value; save(); });
+$("#threshold").addEventListener("change", e=>{
+  S.threshold = Math.max(1, parseInt(e.target.value,10)||6); save(); renderSolved(); });
+$("#btnEasy").onclick = ()=>{ setPP("clues",3); setPP("suspects",3); logIt("Easier Mystery: starting Progress Points 3 / 3"); };
+$("#btnHard").onclick = ()=>{ setPP("clues",-3); setPP("suspects",-3); logIt("Harder Mystery: starting Progress Points -3 / -3"); };
+
+document.querySelectorAll("[data-roll]").forEach(b=>b.onclick=()=>{
+  const r = b.dataset.roll;
+  if(r==="elements-clues")      return show(rollElements("clues"));
+  if(r==="elements-suspects")   return show(rollElements("suspects"));
+  if(r==="exyes-clues"||r==="exyes-suspects"){
+    const k = r.endsWith("clues")?"clues":"suspects";
+    const h = '<div class="roll">Discovery Check: Exceptional Yes &mdash; two rolls, one Progress Point</div>'+
+      '<div>'+rollElements(k,{depth:1})+'</div>'+
+      '<div style="margin-top:12px;border-top:1px dotted var(--line);padding-top:8px">'+
+      rollElements(k,{depth:1,noPP:true})+'</div>';
+    return show(h);
+  }
+  if(r==="clue"){ const n=die(100), i=band(n);
+    logIt("Rolled Clue ["+n+"] &rarr; "+esc(label("clues",i))); flash("clues",i);
+    return show('<div class="roll">Clue &mdash; 1d100 ['+n+'] &rarr; box '+BAND(i)+'</div><div class="title">'+
+      esc(S.clues[i].t||"Choose Most Logical Clue")+'</div>'); }
+  if(r==="suspect"){ const n=die(10), i=n-1;
+    logIt("Rolled Suspect ["+n+"] &rarr; "+esc(label("suspects",i))); flash("suspects",i);
+    return show('<div class="roll">Suspect &mdash; 1d10 ['+n+']</div><div class="title">'+
+      esc(S.suspects[i].t||"Choose Most Logical Suspect")+'</div>'); }
+  if(r==="focus")   return show(focusHTML());
+  if(r==="special") return show(specialHTML(null));
+  if(r==="desc-clues")    return show(descHTML("clues"));
+  if(r==="desc-suspects") return show(descHTML("suspects"));
+});
+
+/* ---- Save / load / print ---- */
+$("#btnPrint").onclick = ()=>window.print();
+$("#btnExport").onclick = ()=>{
+  const name = (S.mystery.trim()||"mystery-matrix").replace(/[^\w -]/g,"").slice(0,50);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(S,null,2)],{type:"application/json"}));
+  a.download = name+".json"; a.click(); URL.revokeObjectURL(a.href);
+};
+$("#btnImport").onclick = ()=>$("#fileIn").click();
+$("#fileIn").onchange = e=>{
+  const f = e.target.files[0]; if(!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { try{ const o=JSON.parse(rd.result);
+      if(!o.clues||o.clues.length!==20) throw 0;
+      S = Object.assign(BLANK(),o); boot(); logIt("Imported "+esc(f.name));
+    }catch(err){ alert("That file is not a Mystery Matrix export."); } };
+  rd.readAsText(f); e.target.value="";
+};
+$("#btnReset").onclick = ()=>{ if(confirm("Clear the Matrix and start a new case?")){ S=BLANK(); boot(); } };
+window.addEventListener("resize", drawLinks);
+
+/* ============================ Reference ============================ */
+function refTable(title,rows,cols){
+  return '<details class="ref"><summary>'+title+'</summary><table class="tbl"><tr>'+
+    cols.map(c=>'<th>'+c+'</th>').join("")+'</tr>'+
+    rows.map(r=>'<tr>'+r.map(c=>'<td>'+c+'</td>').join("")+'</tr>').join("")+'</table></details>';
+}
+function buildRef(){
+  const el = $("#reference");
+  const elems = [["1-5","New Clue","New Suspect"],["6-8","New Linked Clue","New Linked Suspect"],
+    ["9-10","Link Clue To Suspect or New Clue","Link Clue To Suspect or New Suspect"],
+    ["11","Roll Twice or Link Clue To Suspect","Roll Twice or Link Clue To Suspect"],
+    ["12","New Clue","New Suspect"],["13","Special","Special"],
+    ["14-15","Clincher Clue","Link Clue To Suspect"],
+    ["16 or more","Link Clue To Suspect, PP&minus;6","Link Clue To Suspect, PP&minus;6"]];
+  el.insertAdjacentHTML("beforeend",
+    refTable("Mystery Elements Table (1d10 + Progress Points)", elems, ["1d10+PP","Clues","Suspects"])+
+    refTable("Mystery Special Table (1d100)", SPECIAL.map(r=>[r[0]+"-"+r[1],r[2],r[3]]), ["Roll","Result",""])+
+    refTable("Mystery Event Focus Table (1d100)", FOCUS.map(r=>[r[0]===r[1]?r[0]:r[0]+"-"+r[1],r[2]]), ["Roll","Focus"])+
+    '<details class="ref"><summary>Mystery Descriptors &mdash; Clues</summary><div class="cols">'+
+      DESC.clues.map((w,i)=>(i+1)+": "+w).join("<br>")+'</div></details>'+
+    '<details class="ref"><summary>Mystery Descriptors &mdash; Suspects</summary><div class="cols">'+
+      DESC.suspects.map((w,i)=>(i+1)+": "+w).join("<br>")+'</div></details>'+
+    '<details class="ref"><summary>How a Mystery runs</summary><div class="hint" style="font-size:13px">'+
+      '<p><b>1.</b> Pull the Mystery Thread off your Threads List and write it in the Mystery box. It can only be resolved with these rules.</p>'+
+      '<p><b>2.</b> Investigate normally. Any Clue or Suspect you think matters gets written in a box, and any Link you can justify gets drawn.</p>'+
+      '<p><b>3.</b> Earn a Discovery Check by overcoming something uncertain, then ask the Fate Question &ldquo;Is anything discovered?&rdquo;. '+
+      '<b>Yes</b> &rarr; one roll on the Mystery Elements Table. <b>Exceptional Yes</b> &rarr; two rolls, one Progress Point. '+
+      '<b>No</b> &rarr; nothing. <b>Exceptional No</b> &rarr; no more Discovery Checks this Scene.</p>'+
+      '<p><b>4.</b> Every trip to the Elements Table records 1 Progress Point in that column, even when you roll twice.</p>'+
+      '<p><b>5.</b> The Mystery ends on the Clincher Clue: rolled on the Elements Table, or generated automatically when a '+
+      'Suspect reaches the Clue Point threshold. The Suspect with the most Clue Points is the answer.</p>'+
+      '<p>Rules summarised from <i>Mythic Magazine Volume 6</i> by Tana Pigeon (Word Mill Games).</p>'+
+    '</div></details>');
+}
+
+/* ============================ Boot ============================ */
+function boot(){
+  $("#mysteryTxt").value = S.mystery;
+  $("#ppClues").value = S.pp.clues; $("#ppSuspects").value = S.pp.suspects;
+  $("#threshold").value = S.threshold;
+  refresh(); renderLog(); save();
+}
+buildRef(); boot();
+window.addEventListener("load", drawLinks);
+</script>
+</body>
+</html>
